@@ -111,6 +111,8 @@ int Fun4All_CombinedDataReconstruction_dc(
   //! flags to set
   TRACKING::tpc_zero_supp = true;
   TRACKING::pp_mode = true;
+  Enable::MVTX_APPLYMISALIGNMENT = true;
+  ACTSGEOM::mvtx_applymisalignment = Enable::MVTX_APPLYMISALIGNMENT;
   G4TRACKING::convert_seeds_to_svtxtracks = true;
 
 
@@ -265,7 +267,7 @@ int Fun4All_CombinedDataReconstruction_dc(
   tpcclusterizer->set_reject_event(G4TPC::REJECT_LASER_EVENTS);
   se->registerSubsystem(tpcclusterizer);
 
-  Micromegas_Clustering();
+  //Micromegas_Clustering();
 
  
  auto silicon_Seeding = new PHActsSiliconSeeding;
