@@ -1,0 +1,14 @@
+  Universe  	        = vanilla
+  Executable 	        = /bin/sh
+  concurrency_limits  = CONCURRENCY_LIMIT_DEFAULT:100
+  Initialdir  	      = /sphenix/u/hangal/digital_current/
+  Arguments           = /sphenix/u/hangal/digital_current/run_condor_dc.sh $(flist)
+  Output              = /sphenix/u/hangal/digital_current/log/hit_adc_53513_$(process).out
+  Error               = /sphenix/u/hangal/digital_current/log/hit_adc_53513_$(process).err
+  Log  	              = /sphenix/u/hangal/digital_current/log/hit_adc_53513_$(process).log
+  PeriodicHold        = (NumJobStarts>=2 && JobStatus == 1) 
+  request_memory      = 10GB
+  Priority            = 20
+  job_lease_duration  = 3600
+
+  Queue flist from queue_filelist_53513.list

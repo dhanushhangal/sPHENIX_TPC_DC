@@ -1,0 +1,14 @@
+  Universe  	        = vanilla
+  Executable 	        = /bin/sh
+  concurrency_limits  = CONCURRENCY_LIMIT_DEFAULT:100
+  Initialdir  	      = /sphenix/u/hangal/digital_current/
+  Arguments           = /sphenix/u/hangal/digital_current/run_chainevents.sh $(file)
+  Output              = /sphenix/u/hangal/digital_current/log/chainevents_54966_$(process).out
+  Error               = /sphenix/u/hangal/digital_current/log/chainevents_54966_$(process).err
+  Log  	              = /sphenix/u/hangal/digital_current/log/chainevents_54966_$(process).log
+  PeriodicHold        = (NumJobStarts>=2 && JobStatus == 1) 
+  request_memory      = 5GB
+  Priority            = 20
+  job_lease_duration  = 3600
+
+  Queue file from hits_adc_54966.list
