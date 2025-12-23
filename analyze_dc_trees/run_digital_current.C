@@ -15,7 +15,9 @@ void run_digital_current(const char* macro    = "T_DigitalCurrent.C",
                          const char* inputDir = "",
                          int iStart = 0, int iEnd = 23,
                          int jStart = 0, int jEnd = 1,
-                         bool compileMacro = true)
+                         bool compileMacro = true, 
+                         int max_tpc_vols = -1
+                         )
 {
   std::cout<<"Running digital current processing!"<<std::endl;
   TStopwatch sw; sw.Start();
@@ -83,6 +85,8 @@ void run_digital_current(const char* macro    = "T_DigitalCurrent.C",
 
       if(histsOut->size() == 0) { // Need to figure out how many histograms to make
         int nTpcVols = t->GetUniqueGTMBCOs()/80; // The number of unique gtm_bco's sets the total number of TPC volumes we need to parse.
+        if((nTpcVols > max_tpc_vols) && (max_tpc_vols > 0)) // If the user supplied a limit and the file hits the limit, switch to the hard-coded limit.
+          nTpcVols = max_tpc_vols;
         for(int n = 0; n < nTpcVols+1; n++) { // Make a histogram for each one.
           output_file->cd(); 
           histsOut->push_back(new TH3D(TString::Format("h_dc_phi_r_z_current_tpcVol%d", n).Data(), TString::Format("h_dc_phi_r_z_current_tpcVol%d", n).Data(), TPC::nphi, TPC::phi_bins, TPC::nr, TPC::r_bins, 2*TPC::nz, z_bins));

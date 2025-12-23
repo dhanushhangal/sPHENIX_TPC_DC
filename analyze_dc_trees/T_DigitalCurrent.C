@@ -29,6 +29,7 @@
 #include <fstream>
 #include "TMath.h"
 #include <vector>
+#include <set>
 
 int T_DigitalCurrent::GetUniqueGTMBCOs() {
    if (fChain == 0) return 0;
@@ -145,7 +146,7 @@ std::vector<TH3D*> *T_DigitalCurrent::Loop(std::vector<TH3D*> *histsToFill, doub
          start_frame_index = frame_index;
       }
       if(n_tpc_vol >= histsToFill->size()) { 
-         std::cout<<"Abormal termination due to different ebdc readout windows. This can happen if you parse the end of a file and it does not match up with the end of a TPC volume."<<std::endl;
+         std::cout<<"Abormal termination due to different ebdc readout windows. This can happen if you parse the end of a file and it does not match up with the end of a TPC volume, or if the user supplies a max number of TPC volumes."<<std::endl;
          break; 
       }// Didn't reserve enough space due to mismatch in ebdc readout size. Should terminate.
       frame_index = frame_index-start_frame_index; // Convert the frame index to the index within this integration time
