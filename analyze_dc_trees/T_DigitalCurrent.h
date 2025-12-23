@@ -11,6 +11,27 @@
 #include <TROOT.h>
 #include <TChain.h>
 #include <TFile.h>
+#include <TH2D.h>
+#include <TH3D.h>
+#include <TString.h>
+#include <TCanvas.h>
+#include "InfoTPC.h"
+
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
+#include <optional>
+#include <algorithm>
+#include <cmath>
+#include <utility>
+
+using std::vector;
+using std::string;
+using std::optional;
+using std::pair;
+using std::nullopt;
+using std::make_pair;
 
 // Header file for the classes stored in the TTree if any.
 
@@ -37,21 +58,42 @@ public :
    // List of branches
    TBranch        *b_dc;   //!
 
-   T_DigitalCurrent(const char* input_filename);
+   T_DigitalCurrent(const char* input_filename, int thisEbdc);
    virtual ~T_DigitalCurrent();
    virtual Int_t    Cut(Long64_t entry);
    virtual Int_t    GetEntry(Long64_t entry);
+   virtual Long64_t    GetEntries();
+   virtual Int_t GetUniqueGTMBCOs();
+   virtual double GetStartTime();
    virtual Long64_t LoadTree(Long64_t entry);
    virtual void     Init(TTree *tree);
-   virtual void     Loop(const char* input_filename);
+   virtual std::vector<TH3D*>     *Loop(std::vector<TH3D*> *histsToFill, double start_time = 984.659e9);
    virtual bool     Notify();
    virtual void     Show(Long64_t entry = -1);
+   virtual vector<string> splitCSVLine(const string& line);
+   virtual inline int csvToInputFEE(const string& region, int csvIdx);
+   virtual void buildPadLookup(const string& csvDir = "");
+   virtual inline optional<pair<double,double>> getPadPositionFast(int inputFEE, int channel);
+
+   //int n_x, n_y, n_z;
+   //const double *bins_x, *bins_y, *bins_z;
+
+   int ebdc = -1;
+   //double *z_bins = NULL;
+
+   // ---------- InputFEE <-> CSV index mapping ----------
+   const vector<int> R1 = {2,4,3,13,17,16};                       // csvFeeIndex 0..5 -> inputFEE values
+   const vector<int> R2 = {11,12,19,18,0,1,15,14};                // csvFeeIndex 0..7
+   const vector<int> R3 = {20,22,21,23,25,24,10,9,8,6,7,5};       // csvFeeIndex 0..11
+
+   vector<vector<optional<pair<double,double>>>> padLookup;
+   bool padLookupBuilt = false;
 };
 
 #endif
 
 #ifdef T_DigitalCurrent_cxx
-T_DigitalCurrent::T_DigitalCurrent(const char* input_filename) : fChain(0) 
+T_DigitalCurrent::T_DigitalCurrent(const char* input_filename, int thisEbdc) : fChain(0) 
 {
     TFile *f = (TFile*)gROOT->GetListOfFiles()->FindObject(input_filename);
     if (!f || !f->IsOpen()) {
@@ -59,6 +101,8 @@ T_DigitalCurrent::T_DigitalCurrent(const char* input_filename) : fChain(0)
     }
     TTree *tree = nullptr;
     f->GetObject("T_DigitalCurrent", tree);
+
+    ebdc = thisEbdc;
 
     Init(tree);
 }
@@ -75,6 +119,14 @@ Int_t T_DigitalCurrent::GetEntry(Long64_t entry)
    if (!fChain) return 0;
    return fChain->GetEntry(entry);
 }
+
+Long64_t T_DigitalCurrent::GetEntries()
+{
+// Read contents of entry.
+   if (!fChain) return 0;
+   return fChain->GetEntries();
+}
+
 Long64_t T_DigitalCurrent::LoadTree(Long64_t entry)
 {
 // Set the environment to read one entry
@@ -133,4 +185,5 @@ Int_t T_DigitalCurrent::Cut(Long64_t entry)
 // returns -1 otherwise.
    return 1;
 }
+
 #endif // #ifdef T_DigitalCurrent_cxx
