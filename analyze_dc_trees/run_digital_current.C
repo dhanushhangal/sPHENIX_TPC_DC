@@ -96,6 +96,10 @@ void run_digital_current(const char* macro    = "T_DigitalCurrent.C",
       }
       histsOut = t->Loop(histsOut, max_start_time); // Fill the histogram
       delete t; // Re-claim memory for this ebdc processing object
+      
+      output_file->cd();
+      for(unsigned int i = 0; i < histsOut->size(); i++)
+        histsOut->at(i)->Write(); // Make sure final versions of all histograms are written
     }
   }
 
