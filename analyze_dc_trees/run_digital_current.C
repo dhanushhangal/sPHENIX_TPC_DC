@@ -11,12 +11,11 @@
 //   root -l -b -q 'run_digital_current.C()'
 // Or with args:
 //   root -l -b -q 'run_digital_current.C("T_DigitalCurrent.C","dc_debug_trees/run72440",0,9,0,1,true)'
-void run_digital_current(const char* macro    = "T_DigitalCurrent.C",
-                         const char* inputDir = "",
+void run_digital_current(const char* inputDir = "../TestFiles/dc_trees",
+                         int start_tpc_vol = 0,
+                         int max_tpc_vols = 100, 
                          int iStart = 0, int iEnd = 23,
-                         int jStart = 0, int jEnd = 1,
-                         bool compileMacro = true, 
-                         int max_tpc_vols = -1
+                         int jStart = 0, int jEnd = 1
                          )
 {
   std::cout<<"Running digital current processing!"<<std::endl;
@@ -41,7 +40,7 @@ void run_digital_current(const char* macro    = "T_DigitalCurrent.C",
 
   // Process all (i, j)
 
-  TFile *output_file = new TFile("dc_r_phi_tpcvolume.root", "RECREATE");
+  TFile *output_file = new TFile(TString::Format("dc_r_phi_tpcvolume_%d_%d.root", start_tpc_vol, start_tpc_vol+max_tpc_vols).Data(), "RECREATE");
 
   double max_start_time = 0.0;
   // Need to do a first pass of all the trees and get a common start time. Takes a bit of extra time but the overhead is low for processing many events at once.
@@ -49,7 +48,7 @@ void run_digital_current(const char* macro    = "T_DigitalCurrent.C",
     for (int j = jStart; j <= jEnd; ++j) {
 
       // Matches ebdc00..ebdc09 for i=0..9, and ebdc10.. for >=10 (like %02d)
-      TString file = Form("../TestFiles/dc_trees/%s/DST_STREAMING_EVENT_ebdc%02d_%d_run3auau_physics_new_nocdbtag-00072440-00000_DigitalCurrentDebugTTree.root", inputDir, i, j);
+      TString file = Form("%s/DST_STREAMING_EVENT_ebdc%02d_%d_run3auau_physics_new_nocdbtag-00072440-00000_DigitalCurrentDebugTTree.root", inputDir, i, j);
 
       // Skip if missing to avoid hard errors
       if (gSystem->AccessPathName(file)) {
@@ -71,7 +70,7 @@ void run_digital_current(const char* macro    = "T_DigitalCurrent.C",
     for (int j = jStart; j <= jEnd; ++j) {
 
       // Matches ebdc00..ebdc09 for i=0..9, and ebdc10.. for >=10 (like %02d)
-      TString file = Form("../TestFiles/dc_trees/%s/DST_STREAMING_EVENT_ebdc%02d_%d_run3auau_physics_new_nocdbtag-00072440-00000_DigitalCurrentDebugTTree.root", inputDir, i, j);
+      TString file = Form("%s/DST_STREAMING_EVENT_ebdc%02d_%d_run3auau_physics_new_nocdbtag-00072440-00000_DigitalCurrentDebugTTree.root", inputDir, i, j);
 
       // Skip if missing to avoid hard errors
       if (gSystem->AccessPathName(file)) {
@@ -84,7 +83,7 @@ void run_digital_current(const char* macro    = "T_DigitalCurrent.C",
       T_DigitalCurrent *t = new T_DigitalCurrent(file.Data(),i);
 
       if(histsOut->size() == 0) { // Need to figure out how many histograms to make
-        int nTpcVols = t->GetUniqueGTMBCOs()/80; // The number of unique gtm_bco's sets the total number of TPC volumes we need to parse.
+        int nTpcVols = t->GetUniqueGTMBCOs()/80 - start_tpc_vol; // The number of unique gtm_bco's sets the total number of TPC volumes we need to parse, which is the number remaining after the starting volume.
         if((nTpcVols > max_tpc_vols) && (max_tpc_vols > 0)) // If the user supplied a limit and the file hits the limit, switch to the hard-coded limit.
           nTpcVols = max_tpc_vols;
         for(int n = 0; n < nTpcVols+1; n++) { // Make a histogram for each one.
@@ -94,12 +93,10 @@ void run_digital_current(const char* macro    = "T_DigitalCurrent.C",
         }
         std::cout<<"Initialized readout histograms for "<<nTpcVols<<" TPC volumes"<<std::endl;
       }
-      histsOut = t->Loop(histsOut, max_start_time); // Fill the histogram
+      std::pair<Long64_t,int> startInfo = t->GetStartEvent(max_start_time, start_tpc_vol);
+      //std::cout<<"File start info: "<<startInfo.first<<" "<<startInfo.second<<std::endl;
+      Long64_t endInd = t->Loop(histsOut, max_start_time, startInfo.first, startInfo.second); // Fill the histogram
       delete t; // Re-claim memory for this ebdc processing object
-      
-      output_file->cd();
-      for(unsigned int i = 0; i < histsOut->size(); i++)
-        histsOut->at(i)->Write(); // Make sure final versions of all histograms are written
     }
   }
 

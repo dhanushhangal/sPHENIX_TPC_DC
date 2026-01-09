@@ -67,9 +67,10 @@ public :
    virtual double GetStartTime();
    virtual Long64_t LoadTree(Long64_t entry);
    virtual void     Init(TTree *tree);
-   virtual std::vector<TH3D*>     *Loop(std::vector<TH3D*> *histsToFill, double start_time = 984.659e9);
+   virtual Long64_t Loop(std::vector<TH3D*> *histsToFill, double start_time = 984.659e9, Long64_t startEvent = 0, int startFrameIndex = 0);
    virtual bool     Notify();
    virtual void     Show(Long64_t entry = -1);
+   virtual std::pair<Long64_t,int> GetStartEvent(double start_time, int startTpcVol);
    virtual vector<string> splitCSVLine(const string& line);
    virtual inline int csvToInputFEE(const string& region, int csvIdx);
    virtual void buildPadLookup(const string& csvDir = "");

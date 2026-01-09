@@ -109,8 +109,43 @@ double T_DigitalCurrent::GetStartTime() {
    return start_time;
 }
 
+std::pair<Long64_t,int> T_DigitalCurrent::GetStartEvent(double start_time, int startTpcVol) {
 
-std::vector<TH3D*> *T_DigitalCurrent::Loop(std::vector<TH3D*> *histsToFill, double start_time)
+   if (fChain == 0) return {0,-1};
+
+   Long64_t nentries = fChain->GetEntries();
+   Long64_t nbytes = 0, nb = 0;
+
+   int n_tpc_vol = 0;
+   int frame_index = 0;
+   int start_frame_index = 0;
+
+   ULong64_t last_gtm_bco = 0;
+   // Loop through as many entries as it takes for all 26 FEEs to be active
+   for (Long64_t jentry=0; jentry<nentries;jentry++) {
+      Long64_t ientry = LoadTree(jentry);
+      if (ientry < 0) break;
+      nb = fChain->GetEntry(jentry);   nbytes += nb;
+
+      if(dc_data_crc!=dc_calc_crc) continue;
+      if(dc_gtm_bco<start_time) continue;
+      
+      frame_index = int(dc_gtm_bco/9720) - int((start_time+1)/9720); // Get the frame index using the gtm_bco timing info and the starting gtm_bco
+      //frame_index = int(dc_gtm_bco/9720) - 101302466; // Removing old hard-coded value
+
+      if(frame_index<start_frame_index) continue; // Exclude frames from before all fees are active
+      if(frame_index>=start_frame_index+80) { // The start_frame_index has exceeded this TPC volume and we need to reset
+         n_tpc_vol++;
+         start_frame_index = frame_index;
+      }
+      if(n_tpc_vol == startTpcVol)
+         return {jentry,start_frame_index};
+   }
+   return {0,-1}; // If we reach the end of the file without finding the start, this should cause an error.
+}
+
+
+Long64_t T_DigitalCurrent::Loop(std::vector<TH3D*> *histsToFill, double start_time, Long64_t startEvent, int startFrameIndex)
 {
    int adc = 0;
    double min_adc = 0.;
@@ -125,12 +160,14 @@ std::vector<TH3D*> *T_DigitalCurrent::Loop(std::vector<TH3D*> *histsToFill, doub
    const double phiShiftBase = (ebdc - 12) * M_PI / 6.0;
 
    int frame_index = 0;
-   int start_frame_index = 0;
+   int start_frame_index = startFrameIndex;
 
-   for (Long64_t jentry=0; jentry<nentries;jentry++) {
+   Long64_t lastEntry = startEvent;
+   for (Long64_t jentry=startEvent; jentry<nentries;jentry++) {
       Long64_t ientry = LoadTree(jentry);
       if (ientry < 0) break;
       nb = fChain->GetEntry(jentry);   nbytes += nb;
+      lastEntry = jentry;
 
       if(jentry%1000000 == 0) cout<<jentry<<" out of "<<nentries<<endl;
 
@@ -141,12 +178,12 @@ std::vector<TH3D*> *T_DigitalCurrent::Loop(std::vector<TH3D*> *histsToFill, doub
       //frame_index = int(dc_gtm_bco/9720) - 101302466; // Removing old hard-coded value
 
       if(frame_index<start_frame_index) continue; // Exclude frames from before all fees are active
-      if(frame_index>start_frame_index+80) { // The start_frame_index has exceeded this TPC volume and we need to reset
+      if(frame_index>=start_frame_index+80) { // The start_frame_index has exceeded this TPC volume and we need to reset
          n_tpc_vol++;
          start_frame_index = frame_index;
       }
       if(n_tpc_vol >= histsToFill->size()) { 
-         std::cout<<"Abormal termination due to different ebdc readout windows. This can happen if you parse the end of a file and it does not match up with the end of a TPC volume, or if the user supplies a max number of TPC volumes."<<std::endl;
+         std::cout<<"Terminated because the assigned number of TPC volumes have been filled."<<std::endl;
          break; 
       }// Didn't reserve enough space due to mismatch in ebdc readout size. Should terminate.
       frame_index = frame_index-start_frame_index; // Convert the frame index to the index within this integration time
@@ -171,7 +208,7 @@ std::vector<TH3D*> *T_DigitalCurrent::Loop(std::vector<TH3D*> *histsToFill, doub
          histsToFill->at(n_tpc_vol)->Fill(phi, r, pancake_z, adc);
       }
    }
-   return histsToFill;
+   return lastEntry;
 }
 
 
